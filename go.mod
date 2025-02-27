@@ -1,4 +1,4 @@
-module github.com/go-ds-dynamodb
+module github.com/Vanssh-k/go-ds-dynamodb
 
 go 1.23
 

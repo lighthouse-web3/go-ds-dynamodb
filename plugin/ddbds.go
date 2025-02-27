@@ -3,11 +3,11 @@ package plugin
 import (
 	"fmt"
 
+	ddbds "github.com/Vanssh-k/go-ds-dynamodb"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	ddbds "github.com/go-ds-dynamodb"
 	"github.com/ipfs/kubo/plugin"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
@@ -68,7 +68,7 @@ func (c *DDBConfig) DiskSpec() fsrepo.DiskSpec {
 
 func (c *DDBConfig) Create(path string) (repo.Datastore, error) {
 	awsConfig := &aws.Config{
-		Endpoint: aws.String(c.Endpoint), // Connecting to local DynamoDB
+		Endpoint: aws.String(c.Endpoint),  // Connecting to local DynamoDB
 		Region:   aws.String("us-east-1"), // Dummy region
 		Credentials: credentials.NewStaticCredentials(
 			"dummy", "dummy", "", // No real credentials needed for local
