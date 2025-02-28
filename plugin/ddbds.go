@@ -37,43 +37,47 @@ func (p *DDBPlugin) DatastoreTypeName() string {
 
 func (p *DDBPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 	return func(m map[string]interface{}) (fsrepo.DatastoreConfig, error) {
-		endpoint, ok := m["endpoint"].(string)
-		if !ok || endpoint == "" {
-			return nil, fmt.Errorf("ddbds: no endpoint specified")
-		}
-
 		table, ok := m["table"].(string)
 		if !ok || table == "" {
 			return nil, fmt.Errorf("ddbds: no table specified")
 		}
 
+		accessKey, _ := m["accessKey"].(string)
+		secretKey, _ := m["secretKey"].(string)
+		sessionToken, _ := m["sessionToken"].(string)
+
 		return &DDBConfig{
-			Endpoint: endpoint,
-			Table:    table,
+			Table:        table,
+			AccessKey:    accessKey,
+			SecretKey:    secretKey,
+			SessionToken: sessionToken,
 		}, nil
 	}
 }
 
 type DDBConfig struct {
-	Endpoint string
-	Table    string
+	Table        string
+	AccessKey    string
+	SecretKey    string
+	SessionToken string
 }
 
 func (c *DDBConfig) DiskSpec() fsrepo.DiskSpec {
 	return fsrepo.DiskSpec{
-		"endpoint": c.Endpoint,
-		"table":    c.Table,
+		"table":        c.Table,
+		"accessKey":    c.AccessKey,
+		"secretKey":    c.SecretKey,
+		"sessionToken": c.SessionToken,
 	}
 }
 
 func (c *DDBConfig) Create(path string) (repo.Datastore, error) {
 	awsConfig := &aws.Config{
-		Endpoint: aws.String(c.Endpoint),  // Connecting to local DynamoDB
-		Region:   aws.String("us-east-1"), // Dummy region
-		Credentials: credentials.NewStaticCredentials(
-			"dummy", "dummy", "", // No real credentials needed for local
-		),
-		DisableSSL: aws.Bool(true),
+		Region: aws.String("us-east-1"),
+	}
+
+	if c.AccessKey != "" && c.SecretKey != "" {
+		awsConfig.Credentials = credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, c.SessionToken)
 	}
 
 	sess, err := session.NewSession(awsConfig)
