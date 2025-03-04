@@ -77,7 +77,7 @@ func (c *DDBConfig) Create(path string) (repo.Datastore, error) {
 	}
 
 	if c.AccessKey != "" && c.SecretKey != "" {
-		awsConfig.Credentials = credentials.NewStaticCredentials(c.AccessKey, c.SecretKey)
+		awsConfig.Credentials = credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, "")
 	}
 
 	sess, err := session.NewSession(awsConfig)
