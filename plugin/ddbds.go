@@ -67,7 +67,7 @@ func (c *DDBConfig) DiskSpec() fsrepo.DiskSpec {
 		"table":     c.Table,
 		"accessKey": c.AccessKey,
 		"secretKey": c.SecretKey,
-		"region": c.Region
+		"region":    c.Region,
 	}
 }
 
