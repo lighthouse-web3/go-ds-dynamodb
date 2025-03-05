@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"fmt"
+	"strings"
 
 	ddbds "github.com/Vanssh-k/go-ds-dynamodb"
 	"github.com/aws/aws-sdk-go/aws"
@@ -71,6 +72,15 @@ func (c *DDBConfig) DiskSpec() fsrepo.DiskSpec {
 	}
 }
 
+// Extracts the Sort Key from DSKey
+func extractSortKey(dsKey string) (string, error) {
+	parts := strings.SplitN(dsKey, "/", 3)
+	if len(parts) < 3 {
+		return "", fmt.Errorf("invalid DSKey format: %s", dsKey)
+	}
+	return parts[2], nil
+}
+
 func (c *DDBConfig) Create(path string) (repo.Datastore, error) {
 	awsConfig := &aws.Config{
 		Region: aws.String(c.Region),
@@ -87,5 +97,12 @@ func (c *DDBConfig) Create(path string) (repo.Datastore, error) {
 
 	ddbClient := dynamodb.New(sess)
 
-	return ddbds.New(ddbClient, c.Table), nil
+	ddbDS := ddbds.New(
+		ddbClient,
+		c.Table,
+		ddbds.WithPartitionKey("PartitionKey"),
+		ddbds.WithSortKey("SortKey"),
+	)
+
+	return ddbDS, nil
 }
