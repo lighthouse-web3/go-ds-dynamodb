@@ -100,7 +100,7 @@ func (c *DDBConfig) Create(path string) (repo.Datastore, error) {
 	ddbDS := ddbds.New(
 		ddbClient,
 		c.Table,
-		ddbds.WithPartitionKey("PartitionKey"),
+		ddbds.WithPartitionkey("PartitionKey"),
 		ddbds.WithSortKey("SortKey"),
 	)
 
