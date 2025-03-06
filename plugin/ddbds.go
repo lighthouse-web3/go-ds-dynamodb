@@ -2,13 +2,14 @@ package plugin
 
 import (
 	"fmt"
-	"strings"
 
 	ddbds "github.com/Vanssh-k/go-ds-dynamodb"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/ipfs/go-datastore"
+	mount "github.com/ipfs/go-datastore/mount"
 	"github.com/ipfs/kubo/plugin"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
@@ -38,17 +39,11 @@ func (p *DDBPlugin) DatastoreTypeName() string {
 
 func (p *DDBPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 	return func(m map[string]interface{}) (fsrepo.DatastoreConfig, error) {
-		table, ok := m["table"].(string)
-		if !ok || table == "" {
-			return nil, fmt.Errorf("ddbds: no table specified")
-		}
-
 		accessKey, _ := m["accessKey"].(string)
 		secretKey, _ := m["secretKey"].(string)
 		region, _ := m["region"].(string)
 
 		return &DDBConfig{
-			Table:     table,
 			AccessKey: accessKey,
 			SecretKey: secretKey,
 			Region:    region,
@@ -57,7 +52,6 @@ func (p *DDBPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 }
 
 type DDBConfig struct {
-	Table     string
 	AccessKey string
 	SecretKey string
 	Region    string
@@ -65,20 +59,10 @@ type DDBConfig struct {
 
 func (c *DDBConfig) DiskSpec() fsrepo.DiskSpec {
 	return fsrepo.DiskSpec{
-		"table":     c.Table,
 		"accessKey": c.AccessKey,
 		"secretKey": c.SecretKey,
 		"region":    c.Region,
 	}
-}
-
-// Extracts the Sort Key from DSKey
-func extractSortKey(dsKey string) (string, error) {
-	parts := strings.SplitN(dsKey, "/", 3)
-	if len(parts) < 3 {
-		return "", fmt.Errorf("invalid DSKey format: %s", dsKey)
-	}
-	return parts[2], nil
 }
 
 func (c *DDBConfig) Create(path string) (repo.Datastore, error) {
@@ -97,12 +81,26 @@ func (c *DDBConfig) Create(path string) (repo.Datastore, error) {
 
 	ddbClient := dynamodb.New(sess)
 
-	ddbDS := ddbds.New(
-		ddbClient,
-		c.Table,
-		ddbds.WithPartitionkey("PartitionKey"),
-		ddbds.WithSortKey("SortKey"),
-	)
+	// Mount different namespaces to different tables
+	ddbDS := mount.New([]mount.Mount{
+		{
+			// Providers datastore with partition & sort keys
+			Prefix: datastore.NewKey("/providers"),
+			Datastore: ddbds.New(ddbClient, "datastore-providers",
+				ddbds.WithPartitionkey("ContentHash"), ddbds.WithSortKey("ProviderID")),
+		},
+		{
+			// Pins datastore (without sort key)
+			Prefix: datastore.NewKey("/pins"),
+			Datastore: ddbds.New(ddbClient, "datastore-pins",
+				ddbds.WithPartitionkey("Hash")),
+		},
+		{
+			// Default datastore for everything else
+			Prefix:    datastore.NewKey("/"),
+			Datastore: ddbds.New(ddbClient, "datastore-table"),
+		},
+	})
 
 	return ddbDS, nil
 }
