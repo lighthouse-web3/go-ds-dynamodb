@@ -3,7 +3,7 @@ package plugin
 import (
 	"fmt"
 
-	ddbds "github.com/Vanssh-k/go-ds-dynamodb"
+	ddbds "github.com/lighthouse-web3/go-ds-dynamodb"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"

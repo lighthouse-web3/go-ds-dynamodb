@@ -1,7 +1,7 @@
 package main
 
 import (
-	plugin "github.com/Vanssh-k/go-ds-dynamodb/plugin"
+	plugin "github.com/lighthouse-web3/go-ds-dynamodb/plugin"
 )
 
 var Plugins = plugin.Plugins
