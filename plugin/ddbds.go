@@ -42,26 +42,38 @@ func (p *DDBPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 		accessKey, _ := m["accessKey"].(string)
 		secretKey, _ := m["secretKey"].(string)
 		region, _ := m["region"].(string)
+		providersTable, _ := m["providersTable"].(string)
+		pinsTable, _ := m["pinsTable"].(string)
+		defaultTable, _ := m["defaultTable"].(string)
 
 		return &DDBConfig{
-			AccessKey: accessKey,
-			SecretKey: secretKey,
-			Region:    region,
+			AccessKey:      accessKey,
+			SecretKey:      secretKey,
+			Region:        region,
+			ProvidersTable: providersTable,
+			PinsTable:      pinsTable,
+			DefaultTable:   defaultTable,
 		}, nil
 	}
 }
 
 type DDBConfig struct {
-	AccessKey string
-	SecretKey string
-	Region    string
+	AccessKey      string
+	SecretKey      string
+	Region        string
+	ProvidersTable string
+	PinsTable      string
+	DefaultTable   string
 }
 
 func (c *DDBConfig) DiskSpec() fsrepo.DiskSpec {
 	return fsrepo.DiskSpec{
-		"accessKey": c.AccessKey,
-		"secretKey": c.SecretKey,
-		"region":    c.Region,
+		"accessKey":      c.AccessKey,
+		"secretKey":      c.SecretKey,
+		"region":        c.Region,
+		"providersTable": c.ProvidersTable,
+		"pinsTable":      c.PinsTable,
+		"defaultTable":   c.DefaultTable,
 	}
 }
 
@@ -81,24 +93,21 @@ func (c *DDBConfig) Create(path string) (repo.Datastore, error) {
 
 	ddbClient := dynamodb.New(sess)
 
-	// Mount different namespaces to different tables
+	// Mount different namespaces to dynamically configured tables
 	ddbDS := mount.New([]mount.Mount{
 		{
-			// Providers datastore with partition & sort keys
 			Prefix: datastore.NewKey("/providers"),
-			Datastore: ddbds.New(ddbClient, "datastore-providers",
+			Datastore: ddbds.New(ddbClient, c.ProvidersTable,
 				ddbds.WithPartitionkey("ContentHash"), ddbds.WithSortKey("ProviderID")),
 		},
 		{
-			// Pins datastore (without sort key)
 			Prefix: datastore.NewKey("/pins"),
-			Datastore: ddbds.New(ddbClient, "datastore-pins",
+			Datastore: ddbds.New(ddbClient, c.PinsTable,
 				ddbds.WithPartitionkey("Hash")),
 		},
 		{
-			// Default datastore for everything else
 			Prefix:    datastore.NewKey("/"),
-			Datastore: ddbds.New(ddbClient, "datastore-table"),
+			Datastore: ddbds.New(ddbClient, c.DefaultTable),
 		},
 	})
 
